@@ -1,0 +1,20 @@
+# ── Maven and IDE ignore ──────────────────────────────────────
+target/
+.idea/
+*.iml
+.mvn/
+mvnw
+mvnw.cmd
+
+# ── General ignore ───────────────────────────────────────────
+.git/
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+allure-report/
+.github/
+
+# ── OS specifics ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
