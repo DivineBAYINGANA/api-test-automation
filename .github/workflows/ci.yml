@@ -48,7 +48,7 @@ jobs:
       - name: Run API tests
         id: run-tests
         run: |
-          mvn test \
+          mvn clean test \
             -Dmaven.test.failure.ignore=true \
             --batch-mode \
             --no-transfer-progress
@@ -62,10 +62,16 @@ jobs:
           import os, glob, xml.etree.ElementTree as ET
           
           total, passed, failed, skipped, errors = 0, 0, 0, 0, 0
-          files = glob.glob("target/surefire-reports/TEST-*.xml")
+          files = glob.glob("target/surefire-reports/**/TEST-*.xml", recursive=True)
+          
+          if not files:
+              print("DEBUG: No files found matching 'target/surefire-reports/**/TEST-*.xml'")
+          else:
+              print(f"DEBUG: Found {len(files)} report files")
           
           for f in files:
               try:
+                  print(f"DEBUG: Parsing {f}")
                   tree = ET.parse(f)
                   root = tree.getroot()
                   total   += int(root.get("tests", 0))
@@ -78,6 +84,8 @@ jobs:
           p_count = total - failed - errors - skipped
           f_total = failed + errors
           pass_pct = int((p_count / total) * 100) if total > 0 else 0
+          
+          print(f"DEBUG: Final stats - Total: {total}, Passed: {p_count}, Failed: {f_total}")
           
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write(f"total={total}\n")
