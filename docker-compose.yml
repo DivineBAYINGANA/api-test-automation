@@ -1,0 +1,44 @@
+version: "3.8"
+
+# ============================================================
+# API Test Automation - Docker Compose Configuration
+# ============================================================
+
+services:
+
+  # ── API Test Runner ────────────────────────────────────────
+  # This service runs the tests and produces Allure results
+  api-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: divines-api-test-runner
+    volumes:
+      # Mount results and reports back to host for inspection/CI
+      - ./target/allure-results:/app/target/allure-results
+      - ./target/surefire-reports:/app/target/surefire-reports
+    environment:
+      - MAVEN_OPTS=-Xmx512m
+    command: mvn test -B --no-transfer-progress
+
+  # ── Allure Report Server ───────────────────────────────────
+  # Access live reports at http://localhost:5050
+  allure-report:
+    image: frankescobar/allure-docker-service:latest
+    container_name: divines-allure-report
+    ports:
+      - "5050:5050"
+    volumes:
+      - ./target/allure-results:/app/allure-results
+    environment:
+      CHECK_RESULTS_EVERY_SECONDS: 3
+      KEEP_HISTORY: 1
+    depends_on:
+      - api-tests
+    profiles:
+      - report
+
+# Persistent volume for results data if needed locally
+volumes:
+  allure-results:
