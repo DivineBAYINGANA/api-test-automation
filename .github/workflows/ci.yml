@@ -136,7 +136,7 @@ jobs:
           REPORT_TO:      ${{ secrets.REPORT_EMAIL }}
         run: |
           python3 << 'PYEOF'
-          import os, smtplib, json, glob
+          import os, smtplib, json, glob, re
           from email.mime.multipart import MIMEMultipart
           from email.mime.text import MIMEText
           from datetime import datetime, timezone
@@ -162,7 +162,23 @@ jobs:
                   test_class = labels.get("testClass", "").split(".")[-1] or "Unknown"
                   severity = labels.get("severity", "normal").capitalize()
                   msg = data.get("statusDetails", {}).get("message", "N/A")
-                  failing_tests.append({"name": data.get("name"), "class": test_class, "severity": severity, "message": msg})
+                  
+                  # Try to extract Expected and Actual values
+                  expected = "N/A"
+                  actual = "N/A"
+                  exp_match = re.search(r"Expected:\s*<(.*?)>", msg)
+                  act_match = re.search(r"(?:Actual|but was):\s*<(.*?)>", msg)
+                  if exp_match: expected = exp_match.group(1)
+                  if act_match: actual = act_match.group(1)
+                  
+                  failing_tests.append({
+                      "name": data.get("name"), 
+                      "class": test_class, 
+                      "severity": severity, 
+                      "message": msg,
+                      "expected": expected,
+                      "actual": actual
+                  })
 
           is_pass = (int(failed) == 0 and int(total) > 0)
           status, s_icon, s_color, s_bg = ("PASSED", "✅", "#2e7d32", "#e8f5e9") if is_pass else ("FAILED", "❌", "#b71c1c", "#ffebee")
@@ -174,9 +190,15 @@ jobs:
             for t in failing_tests:
               fail_block += f"""
               <div style="border:1px solid #ffcdd2; border-radius:7px; margin-bottom:19px; background:#fff; padding:15px;">
-                <p style="margin:0; font-size:13px; font-weight:700; color:#b71c1c">{t['name']}</p>
-                <p style="margin:1px 0 9px; font-size:10px; color:#666;">{t['class']} &middot; Severity: {t['severity']}</p>
-                <div style="background:#f8f9fa; padding:11px; border-radius:4px; font-family:monospace; font-size:11px; border-left:3px solid #b71c1c; color:#c62828">{t['message']}</div>
+                <p style="margin:0; font-size:14px; font-weight:700; color:#b71c1c">{t['name']}</p>
+                <p style="margin:1px 0 9px; font-size:11px; color:#666;">{t['class']} &middot; Severity: {t['severity']}</p>
+                <div style="background:#fdf2f2; padding:12px; border-radius:4px; margin-bottom:10px; border-left:4px solid #b71c1c;">
+                   <table width="100%" style="font-size:12px; border-collapse:collapse;">
+                     <tr><td width="80" style="color:#666; padding:2px 0;"><b>Expected:</b></td><td style="color:#2e7d32; font-family:monospace;">{t['expected']}</td></tr>
+                     <tr><td width="80" style="color:#666; padding:2px 0;"><b>Actual:</b></td><td style="color:#b71c1c; font-family:monospace;">{t['actual']}</td></tr>
+                   </table>
+                </div>
+                <div style="background:#f8f9fa; padding:11px; border-radius:4px; font-family:monospace; font-size:11px; border-left:3px solid #dee2e6; color:#444; overflow-x:auto;">{t['message']}</div>
               </div>"""
 
           html = f"""<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#f4f6f9;font-family:Arial,sans-serif">
@@ -211,7 +233,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           python3 << 'PYEOF'
-          import json, os, subprocess, sys; from glob import glob
+          import json, os, subprocess, sys, re; from glob import glob
           webhook = os.environ.get("SLACK_WEBHOOK_URL", "")
           if not webhook: sys.exit(0)
           total, passed, failed, pass_pct = "${{ steps.parse-results.outputs.total }}", "${{ steps.parse-results.outputs.passed }}", "${{ steps.parse-results.outputs.failed }}", "${{ steps.parse-results.outputs.pass_pct }}"
@@ -219,16 +241,35 @@ jobs:
           status_text = "PASSED" if is_pass else "FAILED"
           color = "#2e7d32" if is_pass else "#e01e5a"
           
+          fail_details = ""
+          if not is_pass:
+              fail_details = "\n*🚨 Failing Tests:*"
+              for json_file in sorted(glob.glob("target/allure-results/*-result.json")):
+                  try:
+                      with open(json_file, 'r', encoding='utf-8') as f: data = json.load(f)
+                      if data.get("status") in ["failed", "broken"]:
+                          name = data.get("name")
+                          msg = data.get("statusDetails", {}).get("message", "N/A")
+                          expected = re.search(r"Expected:\s*<(.*?)>", msg)
+                          actual = re.search(r"(?:Actual|but was):\s*<(.*?)>", msg)
+                          exp_val = expected.group(1) if expected else "?"
+                          act_val = actual.group(1) if actual else "?"
+                          fail_details += f"\n• *{name}*: Expected `{exp_val}`, but got `{act_val}`"
+                  except: continue
+
           blocks = [
             {"type": "header", "text": {"type": "plain_text", "text": f"{status_emoji} API Tests {status_text}", "emoji": True}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": f"*Summary:*\n*{passed}/{total}* Passed ({pass_pct}%)"}},
             {"type": "section", "fields": [
               {"type": "mrkdwn", "text": f"*Repo:*\n${{ github.repository }}"},
-              {"type": "mrkdwn", "text": f"*Branch:*\n${{ github.ref_name }}"},
-              {"type": "mrkdwn", "text": f"*Summary:*\n*{passed}/{total}* Passed ({pass_pct}%)"},
-              {"type": "mrkdwn", "text": f"*Run:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#{os.environ.get('GITHUB_RUN_NUMBER', '0')}>"}
-            ]},
-            {"type": "actions", "elements": [{"type": "button", "text": {"type": "plain_text", "text": "View Full Report"}, "url": f"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "style": "primary"}]}
+              {"type": "mrkdwn", "text": f"*Branch:*\n${{ github.ref_name }}"}
+            ]}
           ]
+          
+          if fail_details:
+              blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": fail_details}})
+              
+          blocks.append({"type": "actions", "elements": [{"type": "button", "text": {"type": "plain_text", "text": "View Full Results"}, "url": f"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "style": "primary"}]})
           
           payload = {"attachments": [{"color": color, "blocks": blocks}]}
           subprocess.run(["curl", "-s", "-X", "POST", webhook, "-H", "Content-Type: application/json", "-d", json.dumps(payload)])

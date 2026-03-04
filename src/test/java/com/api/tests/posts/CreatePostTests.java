@@ -1,12 +1,13 @@
 package com.api.tests.posts;
 
 import com.api.config.ApiConfig;
-import com.api.models.Post;
 import com.api.base.TestBase;
 import com.api.utils.TestDataFactory;
 import io.qameta.allure.*;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
+
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -26,7 +27,7 @@ public class CreatePostTests extends TestBase {
     @Severity(SeverityLevel.BLOCKER)
     @Description("API: POST /posts. Validates that a valid payload returns HTTP 201 and the created resource. Issue: Endpoint may fail to create post or return incorrect data.")
     void testCreatePost_WithValidPayload_ShouldReturn201() {
-        Post newPost = TestDataFactory.createValidPost();
+        Map<String, Object> newPost = TestDataFactory.createValidPost();
 
         given()
                 .spec(requestSpec)
@@ -34,11 +35,11 @@ public class CreatePostTests extends TestBase {
                 .when()
                 .post(ApiConfig.POSTS_ENDPOINT)
                 .then()
-                .statusCode(ApiConfig.STATUS_OK)
+                .statusCode(ApiConfig.STATUS_CREATED)
                 .body("id", notNullValue())
-                .body("userId", equalTo(newPost.getUserId()))
-                .body("title", equalTo(newPost.getTitle()))
-                .body("body", equalTo(newPost.getBody()));
+                .body("userId", equalTo(newPost.get("userId")))
+                .body("title", equalTo(newPost.get("title")))
+                .body("body", equalTo(newPost.get("body")));
     }
 
     @Test

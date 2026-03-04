@@ -21,7 +21,7 @@ public abstract class TestBase {
 
     @BeforeAll
     static void globalSetup() {
-        log.info("========== Initializing Divine's API Test Suite ==========");
+        log.info("========== Initializing API Test Suite ==========");
 
         requestSpec = new RequestSpecBuilder()
                 .setBaseUri(ApiConfig.BASE_URL)

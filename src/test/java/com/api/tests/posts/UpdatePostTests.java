@@ -23,7 +23,7 @@ public class UpdatePostTests extends TestBase {
     @DisplayName("PUT /posts/{id} — full update should return 200")
     @Severity(SeverityLevel.BLOCKER)
     void testPutPost_WithValidPayload_ShouldReturn200() {
-        var updatedPost = TestDataFactory.createUpdatedPost();
+        Map<String, Object> updatedPost = TestDataFactory.createUpdatedPost();
 
         given()
                 .spec(requestSpec)
@@ -33,9 +33,9 @@ public class UpdatePostTests extends TestBase {
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
                 .body("id", equalTo(ApiConfig.VALID_POST_ID))
-                .body("userId", equalTo(updatedPost.getUserId()))
-                .body("title", equalTo("Injected Failure Title"))
-                .body("body", equalTo(updatedPost.getBody()));
+                .body("userId", equalTo(updatedPost.get("userId")))
+                .body("title", equalTo(updatedPost.get("title")))
+                .body("body", equalTo(updatedPost.get("body")));
     }
 
     @Test

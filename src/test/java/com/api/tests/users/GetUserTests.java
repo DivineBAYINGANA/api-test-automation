@@ -30,7 +30,7 @@ public class GetUserTests extends TestBase {
                 .get(ApiConfig.USERS_ENDPOINT)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
-                .body("$.size()", equalTo(11))
+                .body("$.size()", equalTo(10))
                 .body("[0].id", notNullValue())
                 .body("[0].name", notNullValue())
                 .body("[0].email", notNullValue())

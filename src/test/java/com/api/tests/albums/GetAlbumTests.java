@@ -26,6 +26,6 @@ public class GetAlbumTests extends TestBase {
                 .get(ApiConfig.ALBUMS_ENDPOINT)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
-                .body("$.size()", equalTo(500));
+                .body("$.size()", equalTo(100));
     }
 }
