@@ -233,7 +233,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           python3 << 'PYEOF'
-          import json, os, subprocess, sys, re; from glob import glob
+          import json, os, subprocess, sys, re, glob
           webhook = os.environ.get("SLACK_WEBHOOK_URL", "")
           if not webhook: sys.exit(0)
           total, passed, failed, pass_pct = "${{ steps.parse-results.outputs.total }}", "${{ steps.parse-results.outputs.passed }}", "${{ steps.parse-results.outputs.failed }}", "${{ steps.parse-results.outputs.pass_pct }}"
