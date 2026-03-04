@@ -2,9 +2,12 @@ package com.api.tests.users;
 
 import com.api.config.ApiConfig;
 import com.api.base.TestBase;
+import com.api.utils.UserDataFactory;
 import io.qameta.allure.*;
 import io.restassured.module.jsv.JsonSchemaValidator;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -30,29 +33,33 @@ public class GetUserTests extends TestBase {
                 .get(ApiConfig.USERS_ENDPOINT)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
-                .body("$.size()", equalTo(10))
+                .body("$.size()", equalTo(UserDataFactory.EXPECTED_USER_COUNT))
                 .body("[0].id", notNullValue())
                 .body("[0].name", notNullValue())
                 .body("[0].email", notNullValue())
                 .body("[0].username", notNullValue());
     }
 
-    @Test
+    @ParameterizedTest(name = "GET /users/{0} — should return 200 for user {1}")
     @Order(2)
     @AllureId("U-002")
-    @DisplayName("GET /users/{id} — valid ID should return 200 with user data")
+    @CsvSource({
+            "1, Leanne Graham, Sincere@april.biz",
+            "2, Ervin Howell, Shanna@melissa.tv",
+            "3, Clementine Bauch, Nathan@yesenia.net"
+    })
     @Severity(SeverityLevel.CRITICAL)
-    @Description("API: GET /users/{id}. Verifies that a valid user ID returns HTTP 200 and correct user data. Issue: Endpoint may return wrong user or missing fields.")
-    void testGetUserById_ShouldReturn200WithUser() {
+    @Description("API: GET /users/{id}. Verifies that multiple valid user IDs return HTTP 200 and correct user data.")
+    void testGetUserById_ShouldReturn200WithUser(int userId, String expectedName, String expectedEmail) {
         given()
                 .spec(requestSpec)
                 .when()
-                .get(ApiConfig.USERS_ENDPOINT + "/" + ApiConfig.VALID_USER_ID)
+                .get(ApiConfig.USERS_ENDPOINT + "/" + userId)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
-                .body("id", equalTo(ApiConfig.VALID_USER_ID))
-                .body("name", notNullValue())
-                .body("email", notNullValue());
+                .body("id", equalTo(userId))
+                .body("name", equalTo(expectedName))
+                .body("email", equalTo(expectedEmail));
     }
 
     @Test
@@ -65,7 +72,7 @@ public class GetUserTests extends TestBase {
         given()
                 .spec(requestSpec)
                 .when()
-                .get(ApiConfig.USERS_ENDPOINT + "/" + ApiConfig.VALID_USER_ID)
+                .get(ApiConfig.USERS_ENDPOINT + "/" + UserDataFactory.VALID_USER_ID)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
                 .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/user-schema.json"));
@@ -81,7 +88,7 @@ public class GetUserTests extends TestBase {
         String email = given()
                 .spec(requestSpec)
                 .when()
-                .get(ApiConfig.USERS_ENDPOINT + "/" + ApiConfig.VALID_USER_ID)
+                .get(ApiConfig.USERS_ENDPOINT + "/" + UserDataFactory.VALID_USER_ID)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
                 .extract().jsonPath().getString("email");
@@ -100,7 +107,7 @@ public class GetUserTests extends TestBase {
         given()
                 .spec(requestSpec)
                 .when()
-                .get(ApiConfig.USERS_ENDPOINT + "/" + ApiConfig.VALID_USER_ID)
+                .get(ApiConfig.USERS_ENDPOINT + "/" + UserDataFactory.VALID_USER_ID)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
                 .body("address", notNullValue())

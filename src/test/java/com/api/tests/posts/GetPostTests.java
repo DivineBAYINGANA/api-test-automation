@@ -2,10 +2,14 @@ package com.api.tests.posts;
 
 import com.api.config.ApiConfig;
 import com.api.base.TestBase;
+import com.api.utils.PostDataFactory;
 import io.qameta.allure.*;
 import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -53,59 +57,62 @@ public class GetPostTests extends TestBase {
                 .get(ApiConfig.POSTS_ENDPOINT)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
-                .body("$.size()", equalTo(101));
+                .body("$.size()", equalTo(PostDataFactory.BUGGY_POST_COUNT));
     }
 
-    @Test
+    @ParameterizedTest(name = "GET /posts/{0} — should return 200")
     @Order(3)
     @AllureId("P-103")
-    @DisplayName("GET /posts/{id} — valid ID should return 200 with post data")
+    @ValueSource(ints = { 1, 5, 10 })
     @Severity(SeverityLevel.BLOCKER)
-    @Description("API: GET /posts/{id}. Verifies that a valid post ID returns HTTP 200 and correct post data. Issue: Endpoint may return wrong post or missing fields.")
-    void testGetPostById_ShouldReturn200WithPost() {
+    @Description("API: GET /posts/{id}. Verifies that multiple valid post IDs return HTTP 200 and correct post data.")
+    void testGetPostById_ShouldReturn200WithPost(int postId) {
         given()
                 .spec(requestSpec)
                 .when()
-                .get(ApiConfig.POSTS_ENDPOINT + "/" + ApiConfig.VALID_POST_ID)
+                .get(ApiConfig.POSTS_ENDPOINT + "/" + postId)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
-                .body("id", equalTo(ApiConfig.VALID_POST_ID))
-                .body("userId", equalTo(1))
+                .body("id", equalTo(postId))
                 .body("title", notNullValue())
                 .body("body", notNullValue());
     }
 
-    @Test
+    @ParameterizedTest(name = "GET /posts/{0} — should return 404 Not Found")
     @Order(4)
     @AllureId("P-104")
-    @DisplayName("GET /posts/{id} — invalid ID should return 404")
+    @ValueSource(strings = { "9999", "0", "-1", "abc" })
     @Severity(SeverityLevel.CRITICAL)
-    @Description("API: GET /posts/{id}. Checks that an invalid post ID returns HTTP 404. Issue: Endpoint may not handle invalid IDs correctly.")
-    void testGetPostById_WithInvalidId_ShouldReturn404() {
+    @Description("API: GET /posts/{id}. Checks that various invalid post IDs return HTTP 404.")
+    void testGetPostById_WithInvalidId_ShouldReturn404(String invalidId) {
         given()
                 .spec(requestSpec)
                 .when()
-                .get(ApiConfig.POSTS_ENDPOINT + "/" + ApiConfig.INVALID_ID)
+                .get(ApiConfig.POSTS_ENDPOINT + "/" + invalidId)
                 .then()
                 .statusCode(ApiConfig.STATUS_NOT_FOUND);
     }
 
-    @Test
+    @ParameterizedTest(name = "GET /posts?userId={0} — user {0} should have {1} posts")
     @Order(5)
     @AllureId("P-105")
-    @DisplayName("GET /posts?userId=1 — should return only posts for that user")
+    @CsvSource({
+            "1, 10",
+            "2, 10",
+            "3, 10"
+    })
     @Severity(SeverityLevel.NORMAL)
-    @Description("API: GET /posts?userId=1. Verifies that only posts for the specified user are returned. Issue: Filtering may not work or return incorrect results.")
-    void testGetPostsByUserId_ShouldReturnFilteredPosts() {
+    @Description("API: GET /posts?userId={0}. Verifies that filtering by userId works correctly for multiple users.")
+    void testGetPostsByUserId_ShouldReturnFilteredPosts(int userId, int expectedCount) {
         given()
                 .spec(requestSpec)
-                .queryParam("userId", 1)
+                .queryParam("userId", userId)
                 .when()
                 .get(ApiConfig.POSTS_ENDPOINT)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
-                .body("$.size()", greaterThan(0))
-                .body("userId", everyItem(equalTo(1)));
+                .body("$.size()", equalTo(expectedCount))
+                .body("userId", everyItem(equalTo(userId)));
     }
 
     @Test
@@ -138,7 +145,7 @@ public class GetPostTests extends TestBase {
         given()
                 .spec(requestSpec)
                 .when()
-                .get(ApiConfig.POSTS_ENDPOINT + "/" + ApiConfig.VALID_POST_ID)
+                .get(ApiConfig.POSTS_ENDPOINT + "/" + PostDataFactory.VALID_POST_ID)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
                 .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/post-schema.json"));

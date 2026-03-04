@@ -2,6 +2,7 @@ package com.api.tests.comments;
 
 import com.api.config.ApiConfig;
 import com.api.base.TestBase;
+import com.api.utils.PostDataFactory;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 
@@ -22,13 +23,13 @@ public class GetCommentTests extends TestBase {
     void testGetCommentsByPostId_ShouldReturnCommentsList() {
         given()
                 .spec(requestSpec)
-                .queryParam("postId", ApiConfig.VALID_POST_ID)
+                .queryParam("postId", PostDataFactory.VALID_POST_ID)
                 .when()
                 .get(ApiConfig.COMMENTS_ENDPOINT)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
                 .body("$.size()", greaterThan(0))
-                .body("[0].postId", equalTo(ApiConfig.VALID_POST_ID))
+                .body("[0].postId", equalTo(PostDataFactory.VALID_POST_ID))
                 .body("[0].email", notNullValue())
                 .body("[0].body", notNullValue());
     }

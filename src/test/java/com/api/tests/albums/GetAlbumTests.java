@@ -2,6 +2,7 @@ package com.api.tests.albums;
 
 import com.api.config.ApiConfig;
 import com.api.base.TestBase;
+import com.api.utils.AlbumDataFactory;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 
@@ -26,6 +27,6 @@ public class GetAlbumTests extends TestBase {
                 .get(ApiConfig.ALBUMS_ENDPOINT)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK)
-                .body("$.size()", equalTo(100));
+                .body("$.size()", equalTo(AlbumDataFactory.BUGGY_ALBUM_COUNT));
     }
 }

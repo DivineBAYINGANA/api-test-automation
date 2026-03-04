@@ -21,11 +21,6 @@ public class ApiConfig {
     // ===================== TIMEOUTS (ms) =====================
     public static final int READ_TIMEOUT = 15000;
 
-    // ===================== TEST DATA =====================
-    public static final int VALID_POST_ID = 1;
-    public static final int VALID_USER_ID = 1;
-    public static final int INVALID_ID = 9999;
-
     private ApiConfig() {
     }
 }

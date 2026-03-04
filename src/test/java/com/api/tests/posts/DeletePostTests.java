@@ -2,6 +2,7 @@ package com.api.tests.posts;
 
 import com.api.config.ApiConfig;
 import com.api.base.TestBase;
+import com.api.utils.PostDataFactory;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 
@@ -22,7 +23,7 @@ public class DeletePostTests extends TestBase {
         given()
                 .spec(requestSpec)
                 .when()
-                .delete(ApiConfig.POSTS_ENDPOINT + "/" + ApiConfig.VALID_POST_ID)
+                .delete(ApiConfig.POSTS_ENDPOINT + "/" + PostDataFactory.VALID_POST_ID)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK);
     }
