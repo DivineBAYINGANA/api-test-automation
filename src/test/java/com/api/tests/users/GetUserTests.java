@@ -116,4 +116,20 @@ public class GetUserTests extends TestBase {
                 .body("company", notNullValue())
                 .body("company.name", notNullValue());
     }
+
+    @Test
+    @Order(6)
+    @AllureId("U-006")
+    @DisplayName("GET /users — response should match user list JSON schema")
+    @Severity(SeverityLevel.CRITICAL)
+    @Description("API: GET /users. Validates that the response array matches the expected user list JSON schema.")
+    void testGetAllUsers_ShouldMatchUserListJsonSchema() {
+        given()
+                .spec(requestSpec)
+                .when()
+                .get(ApiConfig.USERS_ENDPOINT)
+                .then()
+                .statusCode(ApiConfig.STATUS_OK)
+                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/user-list-schema.json"));
+    }
 }

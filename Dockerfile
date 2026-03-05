@@ -25,7 +25,7 @@ COPY src ./src
 RUN mvn test -B --no-transfer-progress || true
 
 # ============================================================
-# Stage 2: Serve Allure report (Optional specialized stage)
+# Stage 2: Serve Allure report
 # ============================================================
 FROM builder AS reporter
 
