@@ -7,8 +7,6 @@ import java.util.stream.Stream;
 public class PostDataFactory {
 
     public static final int VALID_POST_ID = 1;
-    public static final int INVALID_ID = 9999;
-    public static final int EXPECTED_POST_COUNT = 100;
     public static final int BUGGY_POST_COUNT = 101;
 
     public static Map<String, Object> createValidPost() {

@@ -50,6 +50,7 @@ jobs:
       - name: Run API tests
         id: run-tests
         run: |
+          mkdir -p target/allure-results
           mvn clean test \
             -Dmaven.test.failure.ignore=true \
             --batch-mode \
@@ -130,7 +131,7 @@ jobs:
           retention-days: 14
 
       # 10. Load Allure History & Deploy to GitHub Pages
-      - name: Get Allure history
+      - name: Load Allure history
         uses: actions/checkout@v4
         if: always()
         continue-on-error: true
@@ -138,8 +139,8 @@ jobs:
           ref: gh-pages
           path: gh-pages
 
-      - name: Allure Report Action
-        uses: simple-elf/allure-report-action@master
+      - name: Build Allure Report
+        uses: simple-elf/allure-report-action@v1.7
         if: always()
         id: allure-report
         with:
@@ -149,6 +150,10 @@ jobs:
           allure_history: allure-history
           keep_reports: 20
 
+      - name: Ensure Allure history exists
+        if: always()
+        run: mkdir -p allure-history
+
       - name: Deploy Allure Report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v3
@@ -157,7 +162,7 @@ jobs:
           publish_branch: gh-pages
           publish_dir: allure-history
 
-      # 10. Email Notification (Rich HTML)
+      # 11. Email Notification (Rich HTML)
       - name: Send email report
         if: always()
         env:
