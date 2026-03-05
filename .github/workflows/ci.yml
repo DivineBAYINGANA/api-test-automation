@@ -191,26 +191,34 @@ jobs:
                       data = json.load(f)
               except: continue
               if data.get("status") in ["failed", "broken"]:
+                  name = data.get("name")
+                  desc = data.get("description", "N/A")
+                  full_msg = data.get("statusDetails", {}).get("message", "N/A")
                   labels = {l["name"]: l["value"] for l in data.get("labels", [])}
-                  test_class = labels.get("testClass", "").split(".")[-1] or "Unknown"
-                  severity = labels.get("severity", "normal").capitalize()
-                  msg = data.get("statusDetails", {}).get("message", "N/A")
                   
-                  # Try to extract Expected and Actual values
-                  expected = "N/A"
-                  actual = "N/A"
-                  exp_match = re.search(r"Expected:\s*<(.*?)>", msg)
-                  act_match = re.search(r"(?:Actual|but was):\s*<(.*?)>", msg)
-                  if exp_match: expected = exp_match.group(1)
-                  if act_match: actual = act_match.group(1)
+                  allure_id = labels.get("allureId", "N/A")
+                  severity = labels.get("severity", "normal").capitalize()
+                  
+                  # Extract expected/actual
+                  expected = re.search(r"Expected:\s*<(.*?)>", full_msg)
+                  actual = re.search(r"(?:Actual|but was):\s*<(.*?)>", full_msg)
+                  exp_val = expected.group(1) if expected else "N/A"
+                  act_val = actual.group(1) if actual else "N/A"
+                  
+                  # Find endpoint
+                  endpoint = "N/A"
+                  ep_match = re.search(r"API:\s*([^\s\.\n]+)", desc)
+                  if ep_match: endpoint = ep_match.group(1)
                   
                   failing_tests.append({
-                      "name": data.get("name"), 
-                      "class": test_class, 
-                      "severity": severity, 
-                      "message": msg,
-                      "expected": expected,
-                      "actual": actual
+                      "id": allure_id,
+                      "name": name,
+                      "description": desc,
+                      "severity": severity,
+                      "endpoint": endpoint,
+                      "message": full_msg,
+                      "expected": exp_val,
+                      "actual": act_val
                   })
 
           is_pass = (int(failed) == 0 and int(total) > 0)
@@ -222,10 +230,11 @@ jobs:
             fail_block = '<h2 style="margin:31px 0 11px;font-size:17px;color:#b71c1c">🚨 Detailed Failure Report</h2>'
             for t in failing_tests:
               fail_block += f"""
-              <div style="border:1px solid #ffcdd2; border-radius:7px; margin-bottom:19px; background:#fff; padding:15px;">
-                <p style="margin:0; font-size:14px; font-weight:700; color:#b71c1c">{t['name']}</p>
-                <p style="margin:1px 0 9px; font-size:11px; color:#666;">{t['class']} &middot; Severity: {t['severity']}</p>
-                <div style="background:#fdf2f2; padding:12px; border-radius:4px; margin-bottom:10px; border-left:4px solid #b71c1c;">
+              <div style="border:1px solid #ffcdd2; border-radius:7px; margin-bottom:19px; background:#fff; padding:15px; border-left:5px solid #b71c1c;">
+                <p style="margin:0; font-size:14px; font-weight:700; color:#b71c1c">[{t['id']}] {t['name']}</p>
+                <p style="margin:2px 0; font-size:12px; color:#444;"><b>Endpoint:</b> {t['endpoint']} | <b>Severity:</b> {t['severity']}</p>
+                <p style="margin:5px 0 9px; font-size:12px; color:#666;"><i>{t['description']}</i></p>
+                <div style="background:#fdf2f2; padding:12px; border-radius:4px; margin-bottom:10px;">
                    <table width="100%" style="font-size:12px; border-collapse:collapse;">
                      <tr><td width="80" style="color:#666; padding:2px 0;"><b>Expected:</b></td><td style="color:#2e7d32; font-family:monospace;">{t['expected']}</td></tr>
                      <tr><td width="80" style="color:#666; padding:2px 0;"><b>Actual:</b></td><td style="color:#b71c1c; font-family:monospace;">{t['actual']}</td></tr>
@@ -243,14 +252,15 @@ jobs:
                 <tr style="background:#f5f7ff"><td style="padding:10px;font-weight:700;border-bottom:1px solid #e8eaf0">Metric</td><td style="padding:10px;font-weight:700;border-bottom:1px solid #e8eaf0">Value</td></tr>
                 <tr><td style="padding:10px;border-bottom:1px solid #f0f0f0">Repository</td><td style="padding:10px;border-bottom:1px solid #f0f0f0">${{ github.repository }}</td></tr>
                 <tr><td style="padding:10px;border-bottom:1px solid #f0f0f0">Branch</td><td style="padding:10px;border-bottom:1px solid #f0f0f0">${{ github.ref_name }}</td></tr>
-                <tr><td style="padding:10px;border-bottom:1px solid #f0f0f0">Pass Rate</td><td style="padding:10px;border-bottom:1px solid #f0f0f0"><strong>{pass_pct}%</strong></td></tr>
+                <tr><td style="padding:10px;border-bottom:1px solid #f0f0f0">Pass Rate</td><td style="padding:10px;border-bottom:10px solid #f0f0f0"><strong>{pass_pct}%</strong></td></tr>
+                <tr><td style="padding:10px;border-bottom:1px solid #f0f0f0">Allure Report</td><td style="padding:10px;border-bottom:1px solid #f0f0f0"><a href="https://divinebayingana.github.io/api-test-automation/">View Hosted Report</a></td></tr>
               </table>
               <div style="display:flex;justify-content:space-around;text-align:center;margin-bottom:27px">
                 <div style="flex:1;background:#e8f5e9;padding:15px;margin:4px;border-radius:7px"><div style="font-size:23px;font-weight:700;color:#2e7d32">{passed}</div><div style="font-size:10px;color:#555">PASSED</div></div>
                 <div style="flex:1;background:#ffebee;padding:15px;margin:4px;border-radius:7px"><div style="font-size:23px;font-weight:700;color:#b71c1c">{failed}</div><div style="font-size:10px;color:#555">FAILED</div></div>
               </div>
               {fail_block}
-              <div style="text-align:center;margin-top:31px"><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" style="display:inline-block;background:#1a237e;color:#fff;text-decoration:none;padding:13px 27px;border-radius:5px;font-weight:700">View Build Results</a></div>
+              <div style="text-align:center;margin-top:31px"><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" style="display:inline-block;background:#1a237e;color:#fff;text-decoration:none;padding:13px 27px;border-radius:5px;font-weight:700">View Build Log</a></div>
             </div>
           </div></body></html>"""
 
@@ -328,9 +338,9 @@ jobs:
                   "type": "section",
                   "fields": [
                       {"type": "mrkdwn", "text": f"*Total:* {total}"},
-                      {"type": "mrkdwn", "text": f"*Passed:* {passed} {status_emoji}"},
-                      {"type": "mrkdwn", "text": f"*Failed:* {failed} {'🚨' if not is_pass else ''}"},
-                      {"type": "mrkdwn", "text": f"*Skipped:* {skipped} ℹ️"},
+                      {"type": "mrkdwn", "text": f"*Passed:* {passed}"},
+                      {"type": "mrkdwn", "text": f"*Failed:* {failed}"},
+                      {"type": "mrkdwn", "text": f"*Skipped:* {skipped}"},
                       {"type": "mrkdwn", "text": f"*Pass Rate:* {pass_pct}%"}
                   ]
               },
