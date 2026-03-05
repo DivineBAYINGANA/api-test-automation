@@ -3,6 +3,7 @@ package com.api.tests.posts;
 import com.api.config.ApiConfig;
 import com.api.base.TestBase;
 import io.qameta.allure.*;
+import io.restassured.module.jsv.JsonSchemaValidator;
 import org.junit.jupiter.api.*;
 
 import static io.restassured.RestAssured.given;
@@ -25,5 +26,21 @@ public class DeletePostTests extends TestBase {
                 .delete(ApiConfig.POSTS_ENDPOINT + "/" + PostDataFactory.VALID_POST_ID)
                 .then()
                 .statusCode(ApiConfig.STATUS_OK);
+    }
+
+    @Test
+    @Order(2)
+    @AllureId("P-402")
+    @DisplayName("DELETE /posts/{id} — response should match post JSON schema")
+    @Severity(SeverityLevel.NORMAL)
+    @Description("API: DELETE /posts/{id}. Validates that the response after deletion matches the post JSON schema. Note: JSONPlaceholder returns an empty object, which may cause failure if schema requires fields.")
+    void testDeletePost_ShouldMatchPostJsonSchema() {
+        given()
+                .spec(requestSpec)
+                .when()
+                .delete(ApiConfig.POSTS_ENDPOINT + "/" + PostDataFactory.VALID_POST_ID)
+                .then()
+                .statusCode(ApiConfig.STATUS_OK)
+                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/post-schema.json"));
     }
 }

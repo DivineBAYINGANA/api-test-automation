@@ -25,15 +25,23 @@ COPY src ./src
 RUN mvn test -B --no-transfer-progress || true
 
 # ============================================================
-# Stage 2: Serve Allure report
+# Stage 2: Generate Allure Report
 # ============================================================
 FROM builder AS reporter
 
 # Generate Allure HTML report from results
 RUN mvn allure:report -B --no-transfer-progress || echo "Report generation finished"
 
-# Expose port for report viewing (if needed inside container)
-EXPOSE 8080
+# ============================================================
+# Stage 3: Serve Report via Nginx
+# ============================================================
+FROM nginx:alpine AS report-site
 
-# Default command: run tests
-CMD ["mvn", "test", "-B"]
+# Copy the generated report to Nginx html directory
+COPY --from=reporter /app/target/site/allure-maven-plugin /usr/share/nginx/html
+
+# Expose Nginx port
+EXPOSE 80
+
+# Default command: keep nginx running
+CMD ["nginx", "-g", "daemon off;"]

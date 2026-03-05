@@ -23,17 +23,15 @@ services:
     command: mvn test -B --no-transfer-progress
 
   # ── Allure Report Server ───────────────────────────────────
-  # Access live reports at http://localhost:5050
+  # Access reports directly at http://localhost:5050
   allure-report:
-    image: frankescobar/allure-docker-service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: report-site
     container_name: divines-allure-report
     ports:
-      - "5050:5050"
-    volumes:
-      - ./target/allure-results:/app/allure-results
-    environment:
-      CHECK_RESULTS_EVERY_SECONDS: 3
-      KEEP_HISTORY: 1
+      - "5050:80"
     depends_on:
       - api-tests
     profiles:

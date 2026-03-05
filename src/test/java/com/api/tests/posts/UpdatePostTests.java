@@ -3,6 +3,7 @@ package com.api.tests.posts;
 import com.api.config.ApiConfig;
 import com.api.base.TestBase;
 import io.qameta.allure.*;
+import io.restassured.module.jsv.JsonSchemaValidator;
 import org.junit.jupiter.api.*;
 
 import java.util.Map;
@@ -53,5 +54,39 @@ public class UpdatePostTests extends TestBase {
                 .statusCode(ApiConfig.STATUS_OK)
                 .body("title", equalTo(patchData.get("title")))
                 .body("id", equalTo(PostDataFactory.VALID_POST_ID));
+    }
+
+    @Test
+    @Order(3)
+    @AllureId("P-303")
+    @DisplayName("PUT /posts/{id} — response should match post JSON schema")
+    @Severity(SeverityLevel.CRITICAL)
+    @Description("API: PUT /posts/{id}. Validates that the fully updated post matches the JSON schema.")
+    void testPutPost_ShouldMatchPostJsonSchema() {
+        given()
+                .spec(requestSpec)
+                .body(PostDataFactory.createUpdatedPost())
+                .when()
+                .put(ApiConfig.POSTS_ENDPOINT + "/" + PostDataFactory.VALID_POST_ID)
+                .then()
+                .statusCode(ApiConfig.STATUS_OK)
+                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/post-schema.json"));
+    }
+
+    @Test
+    @Order(4)
+    @AllureId("P-304")
+    @DisplayName("PATCH /posts/{id} — response should match post JSON schema")
+    @Severity(SeverityLevel.CRITICAL)
+    @Description("API: PATCH /posts/{id}. Validates that the partially updated post matches the JSON schema.")
+    void testPatchPost_ShouldMatchPostJsonSchema() {
+        given()
+                .spec(requestSpec)
+                .body(PostDataFactory.createPatchData())
+                .when()
+                .patch(ApiConfig.POSTS_ENDPOINT + "/" + PostDataFactory.VALID_POST_ID)
+                .then()
+                .statusCode(ApiConfig.STATUS_OK)
+                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/post-schema.json"));
     }
 }

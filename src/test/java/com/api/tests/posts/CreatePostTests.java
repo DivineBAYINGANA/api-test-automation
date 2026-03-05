@@ -3,6 +3,7 @@ package com.api.tests.posts;
 import com.api.config.ApiConfig;
 import com.api.base.TestBase;
 import io.qameta.allure.*;
+import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -88,5 +89,22 @@ public class CreatePostTests extends TestBase {
                 .body("userId", equalTo(expectedUserId))
                 .body("title", equalTo(expectedTitle))
                 .body("body", equalTo(expectedBody));
+    }
+
+    @Test
+    @Order(4)
+    @AllureId("P-004")
+    @DisplayName("POST /posts — response should match post JSON schema")
+    @Severity(SeverityLevel.CRITICAL)
+    @Description("API: POST /posts. Validates that the created post response matches the expected JSON schema.")
+    void testCreatePost_ShouldMatchPostJsonSchema() {
+        given()
+                .spec(requestSpec)
+                .body(PostDataFactory.createValidPost())
+                .when()
+                .post(ApiConfig.POSTS_ENDPOINT)
+                .then()
+                .statusCode(ApiConfig.STATUS_CREATED)
+                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath("schemas/post-schema.json"));
     }
 }
